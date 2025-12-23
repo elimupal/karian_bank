@@ -1,6 +1,6 @@
 # Core Banking API - Learning Project
 
-## 🏦 Overview
+## Overview
 
 A production-grade core banking API built with Node.js, Express, PostgreSQL, and Prisma to demonstrate enterprise-level software engineering practices including:
 
@@ -17,7 +17,7 @@ A production-grade core banking API built with Node.js, Express, PostgreSQL, and
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 All comprehensive documentation is available in the `docs/` directory:
 
@@ -39,7 +39,7 @@ All comprehensive documentation is available in the `docs/` directory:
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -77,11 +77,12 @@ npm run dev
 
 ---
 
-## 🏗️ Technology Stack
+## Technology Stack
 
 ### Backend
-- **Runtime**: Node.js v20 LTS
+- **Runtime**: Node.js v20+ LTS
 - **Framework**: Express.js
+- **Language**: TypeScript
 - **ORM**: Prisma
 - **Database**: PostgreSQL 15+
 - **Cache**: Redis
@@ -98,7 +99,7 @@ npm run dev
 - **Sanitization**: express-validator
 
 ### Testing
-- **Framework**: Jest
+- **Framework**: Jest with ts-jest
 - **API Testing**: Supertest
 - **Coverage**: jest --coverage
 
@@ -116,7 +117,7 @@ npm run dev
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 karian_bank/
@@ -145,7 +146,7 @@ See [Folder Structure](docs/architecture/folder-structure.md) for detailed expla
 
 ---
 
-## 🎯 Core Features
+## Core Features
 
 ### Phase 1: Foundation (Completed: ⬜)
 - [ ] Multi-tenant architecture

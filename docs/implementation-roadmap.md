@@ -18,8 +18,12 @@ This roadmap outlines a phased approach to building the core banking API, progre
 
 #### 1.1 Project Initialization
 - [ ] Initialize Node.js project with `npm init`
+- [ ] Install TypeScript and type definitions (`typescript`, `@types/node`, `@types/express`, etc.)
+- [ ] Configure `tsconfig.json` for strict type checking
+- [ ] Set up build scripts (`tsc`, `ts-node-dev` for development)
 - [ ] Install core dependencies (Express, Prisma, JWT, bcrypt, etc.)
-- [ ] Set up ESLint and Prettier for code quality
+- [ ] Set up ESLint with TypeScript plugin (`@typescript-eslint/parser`, `@typescript-eslint/eslint-plugin`)
+- [ ] Set up Prettier for code formatting
 - [ ] Create folder structure as per architecture docs
 - [ ] Set up Git repository with `.gitignore`
 - [ ] Create `.env.example` file
@@ -33,12 +37,12 @@ This roadmap outlines a phased approach to building the core banking API, progre
 - [ ] Set up database connection pooling
 
 #### 1.3 Core Utilities
-- [ ] Implement logger (Winston/Pino)
-- [ ] Create custom error classes
-- [ ] Implement response formatter
+- [ ] Implement logger (Winston/Pino) with TypeScript types
+- [ ] Create custom error classes with proper inheritance
+- [ ] Implement response formatter with generic types
 - [ ] Create encryption/decryption utilities
-- [ ] Set up JWT token helpers
-- [ ] Create validation utilities
+- [ ] Set up JWT token helpers with typed payloads
+- [ ] Create validation utilities with type guards
 
 #### 1.4 Middleware Foundation
 - [ ] Implement error handling middleware
@@ -63,6 +67,8 @@ This roadmap outlines a phased approach to building the core banking API, progre
 
 ### Learning Outcomes
 - Project structure and organization
+- **TypeScript configuration and setup**
+- **Type-safe development workflow**
 - Database design and migrations
 - Middleware pattern
 - Multi-tenancy architecture
