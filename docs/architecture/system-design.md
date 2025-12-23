@@ -15,7 +15,7 @@ This document outlines the high-level system architecture for the core banking A
 #### Backend
 - **Runtime**: Node.js (v20 LTS)
 - **Framework**: Express.js
-- **Language**: JavaScript (with JSDoc for type hints) or TypeScript
+- **Language**: TypeScript
 - **ORM**: Prisma
 - **Database**: PostgreSQL 15+
 - **Cache**: Redis
@@ -513,10 +513,13 @@ graph LR
 
 ### 9.1 Error Hierarchy
 
-```javascript
+```typescript
 // Base error class
-class AppError extends Error {
-  constructor(message, statusCode, isOperational = true) {
+export class AppError extends Error {
+  public readonly statusCode: number;
+  public readonly isOperational: boolean;
+
+  constructor(message: string, statusCode: number, isOperational: boolean = true) {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
@@ -525,27 +528,29 @@ class AppError extends Error {
 }
 
 // Specific error types
-class ValidationError extends AppError {
-  constructor(message, errors) {
+export class ValidationError extends AppError {
+  public readonly errors?: any;
+
+  constructor(message: string, errors?: any) {
     super(message, 400);
     this.errors = errors;
   }
 }
 
-class UnauthorizedError extends AppError {
-  constructor(message = 'Unauthorized') {
+export class UnauthorizedError extends AppError {
+  constructor(message: string = 'Unauthorized') {
     super(message, 401);
   }
 }
 
-class NotFoundError extends AppError {
-  constructor(resource) {
+export class NotFoundError extends AppError {
+  constructor(resource: string) {
     super(`${resource} not found`, 404);
   }
 }
 
-class ConflictError extends AppError {
-  constructor(message) {
+export class ConflictError extends AppError {
+  constructor(message: string) {
     super(message, 409);
   }
 }
@@ -553,25 +558,29 @@ class ConflictError extends AppError {
 
 ### 9.2 Global Error Handler
 
-```javascript
+```typescript
+import { Request, Response, NextFunction } from 'express';
+import { AppError } from '../utils/errors';
+import { logger } from '../utils/logger';
+
 // Centralized error handling middleware
-app.use((err, req, res, next) => {
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
   logger.error(err);
   
-  if (err.isOperational) {
+  if (err instanceof AppError && err.isOperational) {
     // Trusted error - send to client
-    res.status(err.statusCode).json({
+    return res.status(err.statusCode).json({
       status: 'error',
       message: err.message,
-      errors: err.errors
-    });
-  } else {
-    // Programming error - don't leak details
-    res.status(500).json({
-      status: 'error',
-      message: 'Internal server error'
+      errors: (err as any).errors
     });
   }
+  
+  // Programming error - don't leak details
+  return res.status(500).json({
+    status: 'error',
+    message: 'Internal server error'
+  });
 });
 ```
 

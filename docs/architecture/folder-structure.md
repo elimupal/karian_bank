@@ -36,109 +36,110 @@ karian_bank/
 src/
 ├── api/                          # API layer
 │   ├── routes/                   # Route definitions
-│   │   ├── index.js              # Route aggregator
-│   │   ├── auth.routes.js        # Authentication routes
-│   │   ├── user.routes.js        # User management routes
-│   │   ├── customer.routes.js    # Customer routes
-│   │   ├── account.routes.js     # Account routes
-│   │   ├── transaction.routes.js # Transaction routes
-│   │   ├── report.routes.js      # Report generation routes
-│   │   └── admin.routes.js       # Admin/tenant management routes
+│   │   ├── index.ts              # Route aggregator
+│   │   ├── auth.routes.ts        # Authentication routes
+│   │   ├── user.routes.ts        # User management routes
+│   │   ├── customer.routes.ts    # Customer routes
+│   │   ├── account.routes.ts     # Account routes
+│   │   ├── transaction.routes.ts # Transaction routes
+│   │   ├── report.routes.ts      # Report generation routes
+│   │   └── admin.routes.ts       # Admin/tenant management routes
 │   │
 │   ├── controllers/              # Request handlers
-│   │   ├── auth.controller.js
-│   │   ├── user.controller.js
-│   │   ├── customer.controller.js
-│   │   ├── account.controller.js
-│   │   ├── transaction.controller.js
-│   │   ├── report.controller.js
-│   │   └── admin.controller.js
+│   │   ├── auth.controller.ts
+│   │   ├── user.controller.ts
+│   │   ├── customer.controller.ts
+│   │   ├── account.controller.ts
+│   │   ├── transaction.controller.ts
+│   │   ├── report.controller.ts
+│   │   └── admin.controller.ts
 │   │
 │   ├── middleware/               # Express middleware
-│   │   ├── auth.middleware.js    # JWT verification
-│   │   ├── tenant.middleware.js  # Tenant resolution
-│   │   ├── rbac.middleware.js    # Role-based access control
-│   │   ├── rateLimit.middleware.js # Rate limiting
-│   │   ├── validation.middleware.js # Request validation
-│   │   ├── idempotency.middleware.js # Idempotency check
-│   │   ├── error.middleware.js   # Error handling
-│   │   ├── logger.middleware.js  # Request logging
-│   │   └── cors.middleware.js    # CORS configuration
+│   │   ├── auth.middleware.ts    # JWT verification
+│   │   ├── tenant.middleware.ts  # Tenant resolution
+│   │   ├── rbac.middleware.ts    # Role-based access control
+│   │   ├── rateLimit.middleware.ts # Rate limiting
+│   │   ├── validation.middleware.ts # Request validation
+│   │   ├── idempotency.middleware.ts # Idempotency check
+│   │   ├── error.middleware.ts   # Error handling
+│   │   ├── logger.middleware.ts  # Request logging
+│   │   └── cors.middleware.ts    # CORS configuration
 │   │
 │   └── validators/               # Request validation schemas
-│       ├── auth.validator.js
-│       ├── user.validator.js
-│       ├── customer.validator.js
-│       ├── account.validator.js
-│       └── transaction.validator.js
+│       ├── auth.validator.ts
+│       ├── user.validator.ts
+│       ├── customer.validator.ts
+│       ├── account.validator.ts
+│       └── transaction.validator.ts
 │
 ├── services/                     # Business logic layer
-│   ├── auth.service.js           # Authentication logic
-│   ├── user.service.js           # User management logic
-│   ├── customer.service.js       # Customer management logic
-│   ├── account.service.js        # Account management logic
-│   ├── transaction.service.js    # Transaction processing logic
-│   ├── ledger.service.js         # Double-entry bookkeeping
-│   ├── report.service.js         # Report generation logic
-│   ├── tenant.service.js         # Tenant management logic
-│   ├── notification.service.js   # Email/SMS notifications
-│   └── payment.service.js        # Payment gateway integration
+│   ├── auth.service.ts           # Authentication logic
+│   ├── user.service.ts           # User management logic
+│   ├── customer.service.ts       # Customer management logic
+│   ├── account.service.ts        # Account management logic
+│   ├── transaction.service.ts    # Transaction processing logic
+│   ├── ledger.service.ts         # Double-entry bookkeeping
+│   ├── report.service.ts         # Report generation logic
+│   ├── tenant.service.ts         # Tenant management logic
+│   ├── notification.service.ts   # Email/SMS notifications
+│   └── payment.service.ts        # Payment gateway integration
 │
 ├── repositories/                 # Data access layer
-│   ├── user.repository.js
-│   ├── customer.repository.js
-│   ├── account.repository.js
-│   ├── transaction.repository.js
-│   ├── ledger.repository.js
-│   ├── tenant.repository.js
-│   └── audit.repository.js
+│   ├── user.repository.ts
+│   ├── customer.repository.ts
+│   ├── account.repository.ts
+│   ├── transaction.repository.ts
+│   ├── ledger.repository.ts
+│   ├── tenant.repository.ts
+│   └── audit.repository.ts
 │
-├── models/                       # Domain models (if needed beyond Prisma)
-│   ├── Transaction.js
-│   └── Account.js
+├── types/                        # TypeScript type definitions
+│   ├── express.d.ts              # Express type extensions
+│   ├── dtos.ts                   # Data Transfer Objects
+│   └── models.ts                 # Domain model types
 │
 ├── utils/                        # Utility functions
-│   ├── logger.js                 # Winston logger setup
-│   ├── encryption.js             # Encryption/decryption helpers
-│   ├── jwt.js                    # JWT token helpers
-│   ├── pagination.js             # Pagination helpers
-│   ├── response.js               # Standard response formatter
-│   ├── errors.js                 # Custom error classes
-│   ├── validators.js             # Common validation functions
-│   └── constants.js              # Application constants
+│   ├── logger.ts                 # Winston logger setup
+│   ├── encryption.ts             # Encryption/decryption helpers
+│   ├── jwt.ts                    # JWT token helpers
+│   ├── pagination.ts             # Pagination helpers
+│   ├── response.ts               # Standard response formatter
+│   ├── errors.ts                 # Custom error classes
+│   ├── validators.ts             # Common validation functions
+│   └── constants.ts              # Application constants
 │
 ├── config/                       # Configuration modules
-│   ├── database.js               # Database configuration
-│   ├── redis.js                  # Redis configuration
-│   ├── email.js                  # Email service config
-│   ├── sms.js                    # SMS service config
-│   └── app.js                    # Application settings
+│   ├── database.ts               # Database configuration
+│   ├── redis.ts                  # Redis configuration
+│   ├── email.ts                  # Email service config
+│   ├── sms.ts                    # SMS service config
+│   └── app.ts                    # Application settings
 │
 ├── lib/                          # Third-party integrations
 │   ├── prisma/                   # Prisma client management
-│   │   ├── masterClient.js       # Master DB client
-│   │   ├── tenantClientManager.js # Tenant DB client pool
-│   │   └── index.js
+│   │   ├── masterClient.ts       # Master DB client
+│   │   ├── tenantClientManager.ts # Tenant DB client pool
+│   │   └── index.ts
 │   │
 │   ├── redis/                    # Redis client
-│   │   └── client.js
+│   │   └── client.ts
 │   │
 │   ├── queue/                    # Job queue
-│   │   ├── index.js
+│   │   ├── index.ts
 │   │   └── workers/
-│   │       ├── email.worker.js
-│   │       ├── report.worker.js
-│   │       └── batch.worker.js
+│   │       ├── email.worker.ts
+│   │       ├── report.worker.ts
+│   │       └── batch.worker.ts
 │   │
 │   └── pdf/                      # PDF generation
-│       └── generator.js
+│       └── generator.ts
 │
 ├── jobs/                         # Scheduled jobs
-│   ├── calculateInterest.job.js
-│   ├── generateReports.job.js
-│   └── cleanupExpiredTokens.job.js
+│   ├── calculateInterest.job.ts
+│   ├── generateReports.job.ts
+│   └── cleanupExpiredTokens.job.ts
 │
-└── app.js                        # Express app configuration
+└── app.ts                        # Express app configuration
 ```
 
 ---
@@ -291,14 +292,15 @@ config/
 - Define API versioning
 
 **Example**:
-```javascript
-// src/api/routes/account.routes.js
-const express = require('express');
-const router = express.Router();
-const accountController = require('../controllers/account.controller');
-const { authenticate } = require('../middleware/auth.middleware');
-const { validateRequest } = require('../middleware/validation.middleware');
-const { accountValidators } = require('../validators/account.validator');
+```typescript
+// src/api/routes/account.routes.ts
+import { Router } from 'express';
+import { accountController } from '../controllers/account.controller';
+import { authenticate } from '../middleware/auth.middleware';
+import { validateRequest } from '../middleware/validation.middleware';
+import { accountValidators } from '../validators/account.validator';
+
+const router = Router();
 
 router.post(
   '/',
@@ -313,7 +315,7 @@ router.get(
   accountController.getAccount
 );
 
-module.exports = router;
+export default router;
 ```
 
 ### 9.2 Controllers Layer
@@ -326,16 +328,18 @@ module.exports = router;
 - Should NOT contain business logic
 
 **Example**:
-```javascript
-// src/api/controllers/account.controller.js
-const accountService = require('../../services/account.service');
-const { successResponse, errorResponse } = require('../../utils/response');
+```typescript
+// src/api/controllers/account.controller.ts
+import { Request, Response, NextFunction } from 'express';
+import { accountService } from '../../services/account.service';
+import { successResponse } from '../../utils/response';
+import { AuthRequest } from '../../types/express';
 
 class AccountController {
-  async createAccount(req, res, next) {
+  async createAccount(req: AuthRequest, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { customerId, accountType, initialDeposit } = req.body;
-      const { userId, tenantId } = req.user;
+      const { userId, tenantId } = req.user!;
       
       const account = await accountService.createAccount({
         customerId,
@@ -351,10 +355,10 @@ class AccountController {
     }
   }
   
-  async getAccount(req, res, next) {
+  async getAccount(req: AuthRequest, res: Response, next: NextFunction): Promise<Response | void> {
     try {
       const { id } = req.params;
-      const { tenantId } = req.user;
+      const { tenantId } = req.user!;
       
       const account = await accountService.getAccountById(id, tenantId);
       
@@ -365,7 +369,7 @@ class AccountController {
   }
 }
 
-module.exports = new AccountController();
+export const accountController = new AccountController();
 ```
 
 ### 9.3 Services Layer
@@ -378,14 +382,23 @@ module.exports = new AccountController();
 - Independent of HTTP (reusable in CLI, jobs, etc.)
 
 **Example**:
-```javascript
-// src/services/account.service.js
-const accountRepository = require('../repositories/account.repository');
-const transactionService = require('./transaction.service');
-const { NotFoundError, ValidationError } = require('../utils/errors');
+```typescript
+// src/services/account.service.ts
+import { accountRepository } from '../repositories/account.repository';
+import { transactionService } from './transaction.service';
+import { ValidationError } from '../utils/errors';
+import { AccountType } from '@prisma/client';
+
+interface CreateAccountDTO {
+  customerId: string;
+  accountType: AccountType;
+  initialDeposit: number;
+  createdBy: string;
+  tenantId: string;
+}
 
 class AccountService {
-  async createAccount({ customerId, accountType, initialDeposit, createdBy, tenantId }) {
+  async createAccount({ customerId, accountType, initialDeposit, createdBy, tenantId }: CreateAccountDTO) {
     // Business logic: Validate minimum deposit
     const minDeposit = this.getMinimumDeposit(accountType);
     if (initialDeposit < minDeposit) {
@@ -413,17 +426,18 @@ class AccountService {
     return account;
   }
   
-  getMinimumDeposit(accountType) {
-    const minimums = {
+  private getMinimumDeposit(accountType: AccountType): number {
+    const minimums: Record<AccountType, number> = {
       SAVINGS: 100,
       CHECKING: 50,
-      FIXED_DEPOSIT: 1000
+      FIXED_DEPOSIT: 1000,
+      LOAN: 0
     };
     return minimums[accountType] || 0;
   }
 }
 
-module.exports = new AccountService();
+export const accountService = new AccountService();
 ```
 
 ### 9.4 Repositories Layer
@@ -435,12 +449,13 @@ module.exports = new AccountService();
 - No business logic
 
 **Example**:
-```javascript
-// src/repositories/account.repository.js
-const tenantClientManager = require('../lib/prisma/tenantClientManager');
+```typescript
+// src/repositories/account.repository.ts
+import { tenantClientManager } from '../lib/prisma/tenantClientManager';
+import { Account, Prisma } from '@prisma/client';
 
 class AccountRepository {
-  async create(data, tenantId) {
+  async create(data: Prisma.AccountCreateInput, tenantId: string): Promise<Account> {
     const prisma = tenantClientManager.getClient(tenantId);
     
     return await prisma.account.create({
@@ -451,7 +466,7 @@ class AccountRepository {
     });
   }
   
-  async findById(id, tenantId) {
+  async findById(id: string, tenantId: string): Promise<Account | null> {
     const prisma = tenantClientManager.getClient(tenantId);
     
     return await prisma.account.findUnique({
@@ -462,7 +477,7 @@ class AccountRepository {
     });
   }
   
-  async findByAccountNumber(accountNumber, tenantId) {
+  async findByAccountNumber(accountNumber: string, tenantId: string): Promise<Account | null> {
     const prisma = tenantClientManager.getClient(tenantId);
     
     return await prisma.account.findUnique({
@@ -471,7 +486,7 @@ class AccountRepository {
   }
 }
 
-module.exports = new AccountRepository();
+export const accountRepository = new AccountRepository();
 ```
 
 ---
@@ -479,13 +494,13 @@ module.exports = new AccountRepository();
 ## 10. Naming Conventions
 
 ### 10.1 Files
-- **Routes**: `<resource>.routes.js` (e.g., `account.routes.js`)
-- **Controllers**: `<resource>.controller.js`
-- **Services**: `<resource>.service.js`
-- **Repositories**: `<resource>.repository.js`
-- **Middleware**: `<name>.middleware.js`
-- **Validators**: `<resource>.validator.js`
-- **Tests**: `<file>.test.js`
+- **Routes**: `<resource>.routes.ts` (e.g., `account.routes.ts`)
+- **Controllers**: `<resource>.controller.ts`
+- **Services**: `<resource>.service.ts`
+- **Repositories**: `<resource>.repository.ts`
+- **Middleware**: `<name>.middleware.ts`
+- **Validators**: `<resource>.validator.ts`
+- **Tests**: `<file>.test.ts`
 
 ### 10.2 Functions
 - **camelCase** for functions and variables
@@ -501,22 +516,22 @@ module.exports = new AccountRepository();
 
 ## 11. Import Order Convention
 
-```javascript
+```typescript
 // 1. Node.js built-in modules
-const path = require('path');
-const fs = require('fs');
+import path from 'path';
+import fs from 'fs';
 
 // 2. Third-party modules
-const express = require('express');
-const jwt = require('jsonwebtoken');
+import express from 'express';
+import jwt from 'jsonwebtoken';
 
-// 3. Application modules (absolute paths)
-const accountService = require('../services/account.service');
-const { authenticate } = require('../middleware/auth.middleware');
-const { successResponse } = require('../utils/response');
+// 3. Application modules
+import { accountService } from '../services/account.service';
+import { authenticate } from '../middleware/auth.middleware';
+import { successResponse } from '../utils/response';
 
 // 4. Constants and configs
-const { ACCOUNT_TYPES } = require('../utils/constants');
+import { ACCOUNT_TYPES } from '../utils/constants';
 ```
 
 ---
