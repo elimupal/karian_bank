@@ -624,7 +624,395 @@ logs/transactions/transactions-2024-12-23.log
 
 ---
 
-## 9. Best Practices
+## 9. Performance Optimization
+
+### 9.1 Is Logging a Performance Bottleneck?
+
+**Short Answer**: It can be, but Winston handles it well with proper configuration.
+
+**Potential Issues:**
+- File I/O is slower than in-memory operations
+- Synchronous logging blocks the event loop
+- High-volume logging can saturate disk I/O
+- JSON serialization has overhead
+
+**Winston's Built-in Solutions:**
+- Asynchronous transports (non-blocking)
+- Internal buffering
+- Stream-based writing
+
+### 9.2 Async Logging (Recommended)
+
+Winston writes logs asynchronously by default, but you can optimize further:
+
+```typescript
+// src/config/logger.config.ts
+import winston from 'winston';
+import DailyRotateFile from 'winston-daily-rotate-file';
+
+// High-performance transport configuration
+const createOptimizedTransport = (filename: string) => {
+  return new DailyRotateFile({
+    filename,
+    datePattern: 'YYYY-MM-DD',
+    maxSize: '20m',
+    maxFiles: '14d',
+    zippedArchive: true,
+    format: logFormat,
+    
+    // Performance optimizations
+    options: {
+      flags: 'a',           // Append mode
+      encoding: 'utf8',
+      mode: 0o666,
+    },
+  });
+};
+```
+
+### 9.3 Buffered Logging for High Volume
+
+For extremely high-volume scenarios, use buffering:
+
+```typescript
+// src/utils/buffered-logger.service.ts
+import { injectable, inject } from 'tsyringe';
+import { LoggerService } from './logger.service';
+import { QueueService } from '@lib/queue/queue.service';
+import { QUEUE_NAMES } from '@constants/queues';
+
+interface LogEntry {
+  level: string;
+  message: string;
+  meta?: any;
+  timestamp: string;
+}
+
+@injectable()
+export class BufferedLoggerService {
+  private buffer: LogEntry[] = [];
+  private bufferSize = 100; // Flush after 100 entries
+  private flushInterval = 5000; // Flush every 5 seconds
+  private timer: NodeJS.Timeout;
+
+  constructor(
+    @inject('LoggerService') private logger: LoggerService,
+    @inject('QueueService') private queueService: QueueService
+  ) {
+    this.startFlushTimer();
+  }
+
+  private startFlushTimer(): void {
+    this.timer = setInterval(() => {
+      this.flush();
+    }, this.flushInterval);
+  }
+
+  info(message: string, meta?: any): void {
+    this.addToBuffer('info', message, meta);
+  }
+
+  error(message: string, meta?: any): void {
+    // Errors are logged immediately (don't buffer)
+    this.logger.error(message, meta);
+  }
+
+  warn(message: string, meta?: any): void {
+    this.addToBuffer('warn', message, meta);
+  }
+
+  debug(message: string, meta?: any): void {
+    this.addToBuffer('debug', message, meta);
+  }
+
+  private addToBuffer(level: string, message: string, meta?: any): void {
+    this.buffer.push({
+      level,
+      message,
+      meta,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (this.buffer.length >= this.bufferSize) {
+      this.flush();
+    }
+  }
+
+  private flush(): void {
+    if (this.buffer.length === 0) return;
+
+    const entries = [...this.buffer];
+    this.buffer = [];
+
+    // Write buffered logs
+    entries.forEach(entry => {
+      this.logger[entry.level](entry.message, entry.meta);
+    });
+  }
+
+  // Graceful shutdown
+  async shutdown(): Promise<void> {
+    clearInterval(this.timer);
+    this.flush();
+  }
+}
+```
+
+### 9.4 Background Job Logging (For Non-Critical Logs)
+
+Offload non-critical logs to background jobs:
+
+```typescript
+// src/constants/queues.ts
+export const QUEUE_NAMES = {
+  EMAIL: 'email',
+  REPORT: 'report',
+  TRANSACTION: 'transaction',
+  LOGGING: 'logging',  // New logging queue
+} as const;
+
+// src/services/async-logger.service.ts
+import { injectable, inject } from 'tsyringe';
+import { QueueService } from '@lib/queue/queue.service';
+import { QUEUE_NAMES } from '@constants/queues';
+
+interface AsyncLogEntry {
+  type: 'audit' | 'analytics' | 'metrics';
+  data: any;
+}
+
+@injectable()
+export class AsyncLoggerService {
+  constructor(
+    @inject('QueueService') private queueService: QueueService
+  ) {}
+
+  /**
+   * Queue audit log for background processing
+   * Use for non-critical audit logs that don't need immediate persistence
+   */
+  async queueAuditLog(data: any): Promise<void> {
+    await this.queueService.addJob(QUEUE_NAMES.LOGGING, {
+      type: 'audit',
+      data,
+    }, {
+      priority: 5, // Lower priority
+      attempts: 3,
+    });
+  }
+
+  /**
+   * Queue analytics event
+   */
+  async queueAnalytics(event: string, data: any): Promise<void> {
+    await this.queueService.addJob(QUEUE_NAMES.LOGGING, {
+      type: 'analytics',
+      data: { event, ...data },
+    }, {
+      priority: 10, // Lowest priority
+      attempts: 1, // Don't retry analytics
+    });
+  }
+
+  /**
+   * Queue metrics
+   */
+  async queueMetrics(metric: string, value: number, tags?: any): Promise<void> {
+    await this.queueService.addJob(QUEUE_NAMES.LOGGING, {
+      type: 'metrics',
+      data: { metric, value, tags },
+    });
+  }
+}
+
+// src/lib/queue/workers/logging.worker.ts
+import { Job } from 'bull';
+import { container } from '../../../container';
+import { LoggerService } from '../../../utils/logger.service';
+import { QueueService } from '../queue.service';
+import { QUEUE_NAMES } from '../../../constants/queues';
+
+const queueService = container.resolve(QueueService);
+const logger = container.resolve(LoggerService);
+
+const loggingQueue = queueService.getQueue(QUEUE_NAMES.LOGGING);
+
+loggingQueue.process(async (job: Job) => {
+  const { type, data } = job.data;
+
+  try {
+    switch (type) {
+      case 'audit':
+        logger.audit(data.action, data);
+        break;
+      
+      case 'analytics':
+        // Send to analytics service (e.g., Google Analytics, Mixpanel)
+        // await analyticsService.track(data.event, data);
+        break;
+      
+      case 'metrics':
+        // Send to metrics service (e.g., Prometheus, Datadog)
+        // await metricsService.record(data.metric, data.value, data.tags);
+        break;
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Logging job failed:', error);
+    throw error;
+  }
+});
+```
+
+### 9.5 When to Use Background Logging
+
+**Use Background Jobs For:**
+- ✅ Analytics events (user behavior tracking)
+- ✅ Metrics collection (performance stats)
+- ✅ Non-critical audit logs (e.g., "user viewed page")
+- ✅ Aggregated logs (hourly summaries)
+- ✅ External service logging (third-party APIs)
+
+**DON'T Use Background Jobs For:**
+- ❌ Error logs (need immediate visibility)
+- ❌ Security events (failed logins, unauthorized access)
+- ❌ Critical audit logs (financial transactions)
+- ❌ Debugging logs (need real-time)
+
+### 9.6 Hybrid Approach (Recommended)
+
+```typescript
+// src/services/transaction.service.ts
+import { injectable, inject } from 'tsyringe';
+import { LoggerService } from '@utils/logger.service';
+import { AsyncLoggerService } from '@utils/async-logger.service';
+
+@injectable()
+export class TransactionService {
+  constructor(
+    @inject('LoggerService') private logger: LoggerService,
+    @inject('AsyncLoggerService') private asyncLogger: AsyncLoggerService
+  ) {}
+
+  async transfer(data: TransferDTO): Promise<Transaction> {
+    const startTime = Date.now();
+
+    try {
+      const transaction = await this.executeTransfer(data);
+
+      // Critical: Log immediately (synchronous)
+      this.logger.transaction(transaction.id, {
+        type: transaction.type,
+        amount: transaction.amount,
+        fromAccountId: data.fromAccountId,
+        toAccountId: data.toAccountId,
+        status: transaction.status,
+        userId: data.createdBy,
+        tenantId: data.tenantId,
+      });
+
+      // Non-critical: Queue for background processing
+      await this.asyncLogger.queueMetrics('transaction.duration', Date.now() - startTime, {
+        type: transaction.type,
+        tenantId: data.tenantId,
+      });
+
+      await this.asyncLogger.queueAnalytics('transaction_completed', {
+        transactionId: transaction.id,
+        amount: transaction.amount,
+        type: transaction.type,
+      });
+
+      return transaction;
+    } catch (error) {
+      // Errors: Always log immediately
+      this.logger.error('Transfer failed', error);
+      throw error;
+    }
+  }
+}
+```
+
+### 9.7 Performance Benchmarks
+
+**Synchronous Logging:**
+- Simple log: ~0.1-0.5ms
+- With metadata: ~0.5-2ms
+- File write: ~1-5ms
+
+**Async Logging (Winston default):**
+- Simple log: ~0.01-0.1ms (non-blocking)
+- With metadata: ~0.1-0.5ms (non-blocking)
+
+**Background Job Logging:**
+- Queue add: ~0.5-2ms
+- Actual logging: Happens later (doesn't block request)
+
+### 9.8 Best Practices for Performance
+
+1. **Use Appropriate Log Levels**
+   ```typescript
+   // Bad: Logs everything in production
+   logger.debug('Variable x:', x);
+   logger.debug('Variable y:', y);
+   
+   // Good: Only log in development
+   if (process.env.NODE_ENV === 'development') {
+     logger.debug('Variables:', { x, y });
+   }
+   ```
+
+2. **Avoid Logging in Loops**
+   ```typescript
+   // Bad: Logs 1000 times
+   for (const item of items) {
+     logger.info('Processing item', { item });
+     // process item
+   }
+   
+   // Good: Log once with summary
+   logger.info('Processing items', { count: items.length });
+   for (const item of items) {
+     // process item
+   }
+   logger.info('Items processed', { count: items.length });
+   ```
+
+3. **Lazy Evaluation for Expensive Operations**
+   ```typescript
+   // Bad: Serializes even if debug is disabled
+   logger.debug('Large object', JSON.stringify(largeObject));
+   
+   // Good: Only serializes if debug is enabled
+   if (logger.isDebugEnabled()) {
+     logger.debug('Large object', largeObject);
+   }
+   ```
+
+4. **Use Sampling for High-Volume Events**
+   ```typescript
+   // Log only 1% of requests
+   if (Math.random() < 0.01) {
+     logger.http('Request sample', { method, url, duration });
+   }
+   ```
+
+5. **Sanitize Before Logging**
+   ```typescript
+   // Bad: Logs entire request (may include passwords)
+   logger.info('Request received', req.body);
+   
+   // Good: Sanitize sensitive data
+   const sanitized = { ...req.body };
+   delete sanitized.password;
+   delete sanitized.pin;
+   logger.info('Request received', sanitized);
+   ```
+
+---
+
+## 10. Best Practices
 
 ### DO's
 1. **Use structured logging** - Include context (userId, tenantId, etc.)
