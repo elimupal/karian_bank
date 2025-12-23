@@ -84,6 +84,21 @@ npm install --save-dev prisma
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     
+    /* Path Aliases */
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"],
+      "@api/*": ["src/api/*"],
+      "@services/*": ["src/services/*"],
+      "@repositories/*": ["src/repositories/*"],
+      "@utils/*": ["src/utils/*"],
+      "@config/*": ["src/config/*"],
+      "@types/*": ["src/types/*"],
+      "@constants/*": ["src/constants/*"],
+      "@lib/*": ["src/lib/*"],
+      "@middleware/*": ["src/api/middleware/*"]
+    },
+    
     /* Type Checking */
     "strict": true,
     "noImplicitAny": true,
@@ -119,6 +134,43 @@ npm install --save-dev prisma
   "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }
 ```
+
+### 3.3 Path Aliases Usage
+
+With path aliases configured, you can use clean imports throughout your application:
+
+#### Before (Relative Paths)
+```typescript
+import { AccountService } from '../../../services/account.service';
+import { TransactionRepository } from '../../../repositories/transaction.repository';
+import { logger } from '../../../utils/logger';
+import { ROLES } from '../../../constants/roles';
+import { AuthMiddleware } from '../../middleware/auth.middleware';
+```
+
+#### After (Path Aliases)
+```typescript
+import { AccountService } from '@services/account.service';
+import { TransactionRepository } from '@repositories/transaction.repository';
+import { logger } from '@utils/logger';
+import { ROLES } from '@constants/roles';
+import { AuthMiddleware } from '@middleware/auth.middleware';
+```
+
+#### Available Aliases
+
+| Alias | Maps To | Usage |
+|-------|---------|-------|
+| `@/*` | `src/*` | General source files |
+| `@api/*` | `src/api/*` | API routes, controllers |
+| `@services/*` | `src/services/*` | Business logic services |
+| `@repositories/*` | `src/repositories/*` | Data access layer |
+| `@utils/*` | `src/utils/*` | Utility functions |
+| `@config/*` | `src/config/*` | Configuration files |
+| `@types/*` | `src/types/*` | TypeScript types/interfaces |
+| `@constants/*` | `src/constants/*` | Application constants |
+| `@lib/*` | `src/lib/*` | Third-party integrations |
+| `@middleware/*` | `src/api/middleware/*` | Express middleware |
 
 ---
 
@@ -421,6 +473,15 @@ module.exports = {
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    '^@api/(.*)$': '<rootDir>/src/api/$1',
+    '^@services/(.*)$': '<rootDir>/src/services/$1',
+    '^@repositories/(.*)$': '<rootDir>/src/repositories/$1',
+    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
+    '^@config/(.*)$': '<rootDir>/src/config/$1',
+    '^@types/(.*)$': '<rootDir>/src/types/$1',
+    '^@constants/(.*)$': '<rootDir>/src/constants/$1',
+    '^@lib/(.*)$': '<rootDir>/src/lib/$1',
+    '^@middleware/(.*)$': '<rootDir>/src/api/middleware/$1',
   },
 };
 ```
