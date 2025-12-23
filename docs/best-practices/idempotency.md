@@ -135,12 +135,27 @@ model IdempotencyRecord {
 
 ### 5.1 Idempotency Middleware
 
-```javascript
-// src/api/middleware/idempotency.middleware.js
-const { PrismaClient } = require('@prisma/client');
-const { v4: uuidv4 } = require('uuid');
+```typescript
+// src/api/middleware/idempotency.middleware.ts
+import { Request, Response, NextFunction } from 'express';
+import { PrismaClient } from '@prisma/client';
+import { v4 as uuidv4 } from 'uuid';
+
+interface IdempotencyRecord {
+  idempotencyKey: string;
+  endpoint: string;
+  method: string;
+  requestBody?: any;
+  responseStatus: number;
+  responseBody?: any;
+  userId?: string;
+  ipAddress?: string;
+  expiresAt: Date;
+}
 
 class IdempotencyMiddleware {
+  private prisma: PrismaClient;
+  
   constructor() {
     this.prisma = new PrismaClient();
   }
@@ -149,13 +164,13 @@ class IdempotencyMiddleware {
    * Middleware to check and enforce idempotency
    * Only applies to POST, PUT, PATCH, DELETE methods
    */
-  checkIdempotency = async (req, res, next) => {
+  checkIdempotency = async (req: Request, res: Response, next: NextFunction): Promise<Response | void> => {
     // Only check idempotency for state-changing operations
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
       return next();
     }
     
-    const idempotencyKey = req.headers['idempotency-key'];
+    const idempotencyKey = req.headers['idempotency-key'] as string;
     
     // Require idempotency key for critical endpoints
     if (this.requiresIdempotencyKey(req.path) && !idempotencyKey) {
@@ -181,11 +196,11 @@ class IdempotencyMiddleware {
       }
       
       // Store idempotency key for this request
-      req.idempotencyKey = idempotencyKey;
+      (req as any).idempotencyKey = idempotencyKey;
       
       // Intercept response to cache it
       const originalJson = res.json.bind(res);
-      res.json = async (body) => {
+      res.json = async (body: any) => {
         // Save idempotency record
         await this.saveIdempotencyRecord({
           idempotencyKey,
@@ -194,8 +209,9 @@ class IdempotencyMiddleware {
           requestBody: req.body,
           responseStatus: res.statusCode,
           responseBody: body,
-          userId: req.user?.id,
-          ipAddress: req.ip
+          userId: (req as any).user?.id,
+          ipAddress: req.ip,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
         });
         
         return originalJson(body);
@@ -211,7 +227,7 @@ class IdempotencyMiddleware {
   /**
    * Determine if endpoint requires idempotency key
    */
-  requiresIdempotencyKey(path) {
+  private requiresIdempotencyKey(path: string): boolean {
     const criticalEndpoints = [
       '/api/v1/transactions',
       '/api/v1/transfers',
@@ -224,28 +240,23 @@ class IdempotencyMiddleware {
   /**
    * Save idempotency record to database
    */
-  async saveIdempotencyRecord(data) {
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 24); // Expire after 24 hours
-    
+  private async saveIdempotencyRecord(data: IdempotencyRecord): Promise<void> {
     await this.prisma.idempotencyRecord.create({
-      data: {
-        ...data,
-        expiresAt
-      }
+      data
     });
   }
 }
 
-module.exports = new IdempotencyMiddleware();
+export const idempotencyMiddleware = new IdempotencyMiddleware();
 ```
 
 ### 5.2 Apply Middleware
 
-```javascript
-// src/app.js
-const express = require('express');
-const idempotencyMiddleware = require('./api/middleware/idempotency.middleware');
+```typescript
+// src/app.ts
+import express from 'express';
+import { idempotencyMiddleware } from './api/middleware/idempotency.middleware';
+import routes from './api/routes';
 
 const app = express();
 
@@ -255,7 +266,7 @@ app.use(idempotencyMiddleware.checkIdempotency);
 // Routes
 app.use('/api/v1', routes);
 
-module.exports = app;
+export default app;
 ```
 
 ---
@@ -264,17 +275,28 @@ module.exports = app;
 
 ### 6.1 Transaction Service with Idempotency
 
-```javascript
-// src/services/transaction.service.js
-const transactionRepository = require('../repositories/transaction.repository');
-const ledgerService = require('./ledger.service');
-const { InsufficientFundsError, ValidationError } = require('../utils/errors');
+```typescript
+// src/services/transaction.service.ts
+import { transactionRepository } from '../repositories/transaction.repository';
+import { ledgerService } from './ledger.service';
+import { InsufficientFundsError, ValidationError } from '../utils/errors';
+import { PrismaClient, TransactionType, TransactionStatus } from '@prisma/client';
+
+interface TransferDTO {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  description?: string;
+  idempotencyKey?: string;
+  createdBy: string;
+  tenantId: string;
+}
 
 class TransactionService {
   /**
    * Process a transfer with idempotency
    */
-  async transfer({ fromAccountId, toAccountId, amount, description, idempotencyKey, createdBy, tenantId }) {
+  async transfer({ fromAccountId, toAccountId, amount, description, idempotencyKey, createdBy, tenantId }: TransferDTO) {
     // Check if transaction already exists with this idempotency key
     if (idempotencyKey) {
       const existing = await transactionRepository.findByIdempotencyKey(idempotencyKey, tenantId);
@@ -290,7 +312,7 @@ class TransactionService {
     }
     
     // Start database transaction
-    return await transactionRepository.executeInTransaction(async (prisma) => {
+    return await transactionRepository.executeInTransaction(async (prisma: PrismaClient) => {
       // Lock accounts to prevent race conditions
       const fromAccount = await prisma.account.findUnique({
         where: { id: fromAccountId }
@@ -305,7 +327,7 @@ class TransactionService {
       }
       
       // Check sufficient balance
-      if (fromAccount.balance < amount) {
+      if (fromAccount.balance.toNumber() < amount) {
         throw new InsufficientFundsError('Insufficient funds');
       }
       
@@ -314,12 +336,12 @@ class TransactionService {
         data: {
           transactionRef: this.generateTransactionRef(),
           idempotencyKey,
-          type: 'TRANSFER',
+          type: TransactionType.TRANSFER,
           amount,
           fromAccountId,
           toAccountId,
           description,
-          status: 'COMPLETED',
+          status: TransactionStatus.COMPLETED,
           processedAt: new Date(),
           createdBy
         }
@@ -349,14 +371,14 @@ class TransactionService {
     }, tenantId);
   }
   
-  generateTransactionRef() {
+  private generateTransactionRef(): string {
     const date = new Date().toISOString().split('T')[0].replace(/-/g, '');
     const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
     return `TXN-${date}-${random}`;
   }
 }
 
-module.exports = new TransactionService();
+export const transactionService = new TransactionService();
 ```
 
 ---
@@ -504,16 +526,18 @@ describe('POST /api/v1/transactions - Idempotency', () => {
 
 ### 9.1 Scheduled Job to Clean Expired Records
 
-```javascript
-// src/jobs/cleanupIdempotency.job.js
-const { PrismaClient } = require('@prisma/client');
+```typescript
+// src/jobs/cleanupIdempotency.job.ts
+import { PrismaClient } from '@prisma/client';
 
 class CleanupIdempotencyJob {
+  private prisma: PrismaClient;
+  
   constructor() {
     this.prisma = new PrismaClient();
   }
   
-  async run() {
+  async run(): Promise<void> {
     console.log('Cleaning up expired idempotency records...');
     
     const result = await this.prisma.idempotencyRecord.deleteMany({
@@ -528,15 +552,15 @@ class CleanupIdempotencyJob {
   }
 }
 
-module.exports = new CleanupIdempotencyJob();
+export const cleanupIdempotencyJob = new CleanupIdempotencyJob();
 ```
 
 ### 9.2 Schedule with Cron
 
-```javascript
-// server.js
-const cron = require('node-cron');
-const cleanupIdempotencyJob = require('./src/jobs/cleanupIdempotency.job');
+```typescript
+// server.ts
+import cron from 'node-cron';
+import { cleanupIdempotencyJob } from './src/jobs/cleanupIdempotency.job';
 
 // Run every hour
 cron.schedule('0 * * * *', async () => {
@@ -573,31 +597,44 @@ cron.schedule('0 * * * *', async () => {
 
 For high-performance systems, use Redis for idempotency checks:
 
-```javascript
-// src/api/middleware/idempotency.middleware.js (Redis version)
-const redis = require('../lib/redis/client');
+```typescript
+// src/api/middleware/idempotency.middleware.ts (Redis version)
+import { createClient, RedisClientType } from 'redis';
+import { Request, Response, NextFunction } from 'express';
+
+interface CachedResponse {
+  status: number;
+  body: any;
+}
 
 class IdempotencyMiddleware {
-  async checkIdempotency(req, res, next) {
-    const idempotencyKey = req.headers['idempotency-key'];
+  private redis: RedisClientType;
+  
+  constructor() {
+    this.redis = createClient();
+    this.redis.connect();
+  }
+  
+  async checkIdempotency(req: Request, res: Response, next: NextFunction): Promise<Response | void> {
+    const idempotencyKey = req.headers['idempotency-key'] as string;
     
     if (!idempotencyKey) {
       return next();
     }
     
     // Check Redis first (fast)
-    const cached = await redis.get(`idempotency:${idempotencyKey}`);
+    const cached = await this.redis.get(`idempotency:${idempotencyKey}`);
     
     if (cached) {
-      const response = JSON.parse(cached);
+      const response: CachedResponse = JSON.parse(cached);
       return res.status(response.status).json(response.body);
     }
     
     // Intercept response to cache in Redis
     const originalJson = res.json.bind(res);
-    res.json = async (body) => {
+    res.json = async (body: any) => {
       // Cache in Redis with 24-hour expiration
-      await redis.setex(
+      await this.redis.setEx(
         `idempotency:${idempotencyKey}`,
         86400, // 24 hours
         JSON.stringify({
@@ -612,6 +649,8 @@ class IdempotencyMiddleware {
     next();
   }
 }
+
+export const idempotencyMiddleware = new IdempotencyMiddleware();
 ```
 
 ---
