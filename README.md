@@ -1,341 +1,260 @@
-# Core Banking API - Learning Project
+# Core Banking API
 
-## Overview
+A production-grade multi-tenant core banking system built with enterprise software engineering practices.
 
-A production-grade core banking API built with Node.js, Express, PostgreSQL, and Prisma to demonstrate enterprise-level software engineering practices including:
-
-- ✅ **Multi-tenancy** (Database-per-tenant architecture)
-- ✅ **Idempotency** (Prevent duplicate transactions)
-- ✅ **API Rate Limiting** (DoS protection)
-- ✅ **Pagination** (Cursor and offset-based)
-- ✅ **Reports** (PDF and Excel generation)
-- ✅ **Security** (JWT, RBAC, encryption, audit logging)
-- ✅ **Performance** (Caching, query optimization, indexing)
-- ✅ **Maintainability** (Layered architecture, dependency injection, DTOs)
-- ✅ **Double-Entry Bookkeeping** (Financial accuracy)
-- ✅ **Batch Processing** (Scheduled jobs and bulk operations)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7+-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-20+-green.svg)](https://nodejs.org/)
+[![Prisma](https://img.shields.io/badge/Prisma-7.2+-blueviolet.svg)](https://www.prisma.io/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ---
 
-## Documentation
-
-All comprehensive documentation is available in the `docs/` directory:
-
-### Requirements
-- [Functional Requirements](docs/requirements/functional-requirements.md) - Core banking features and modules
-- [Non-Functional Requirements](docs/requirements/non-functional-requirements.md) - Performance, security, scalability
-
-### Architecture
-- [System Design](docs/architecture/system-design.md) - High-level architecture and design patterns
-- [Database Design](docs/architecture/database-design.md) - Multi-tenancy database strategy and schemas
-- [Folder Structure](docs/architecture/folder-structure.md) - Project organization and layer responsibilities
-
-### Best Practices
-- [Idempotency](docs/best-practices/idempotency.md) - Preventing duplicate transactions
-- More guides coming soon (Security, Performance, Rate Limiting, etc.)
-
-### Implementation
-- [Implementation Roadmap](docs/implementation-roadmap.md) - Phased development plan (14 weeks)
-
----
-
-## Quick Start
-
-### Prerequisites
-
-- **Node.js** v20+ LTS
-- **PostgreSQL** 15+
-- **Redis** (for caching and rate limiting)
-- **npm** or **yarn**
-
-### Installation
+## 🚀 Quick Start
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd karian_bank
-
 # Install dependencies
 npm install
 
-# Copy environment variables
+# Configure environment
 cp .env.example .env
-
 # Edit .env with your configuration
-# Set up master and tenant database URLs
+
+# Generate Prisma clients
+npm run prisma:generate
 
 # Run database migrations
-npx prisma migrate dev --schema=./prisma/master.prisma
-npx prisma migrate dev --schema=./prisma/tenant.prisma
-
-# Seed databases (optional)
-npm run seed
+npm run prisma:migrate:master
+npm run prisma:migrate:tenant
 
 # Start development server
 npm run dev
 ```
 
----
-
-## Technology Stack
-
-### Backend
-- **Runtime**: Node.js v20+ LTS
-- **Framework**: Express.js
-- **Language**: TypeScript
-- **ORM**: Prisma
-- **Database**: PostgreSQL 15+
-- **Cache**: Redis
-- **Queue**: Bull (Redis-based)
-
-### Security
-- **Authentication**: JWT (jsonwebtoken)
-- **Password Hashing**: bcrypt
-- **Security Headers**: Helmet.js
-- **Rate Limiting**: express-rate-limit
-
-### Validation & DTOs
-- **Validation**: Joi / Zod
-- **Sanitization**: express-validator
-
-### Testing
-- **Framework**: Jest with ts-jest
-- **API Testing**: Supertest
-- **Coverage**: jest --coverage
-
-### Documentation
-- **API Docs**: Swagger/OpenAPI
-- **Code Docs**: JSDoc
-
-### Reporting
-- **PDF**: PDFKit
-- **Excel**: ExcelJS
-
-### Logging & Monitoring
-- **Logging**: Winston / Pino
-- **Metrics**: Prometheus (prom-client)
+**Server will be available at:**
+- API: http://localhost:3000/api/v1
+- Swagger UI: http://localhost:3000/api-docs
+- Redoc: http://localhost:3000/api-docs-redoc
 
 ---
 
-## Project Structure
+## 📋 Current Status
+
+**Version:** 0.2.0  
+**Phase:** 2 of 6 Complete (Authentication & Authorization)
+
+**Working Features:**
+✅ Multi-tenancy (database-per-tenant)  
+✅ User authentication (JWT)  
+✅ Email verification  
+✅ Password reset  
+✅ Token blacklisting (logout)  
+✅ Rate limiting  
+✅ API documentation (Swagger + Redoc)
+
+**API Endpoints:** 9 (1 health + 8 auth)
+
+---
+
+## 🏗️ Architecture
+
+**Multi-Tenancy Strategy:** Database-per-tenant
+
+**Tech Stack:**
+- **Runtime:** Node.js 20+ with TypeScript
+- **Framework:** Express.js
+- **Database:** PostgreSQL with Prisma ORM (v7)
+- **Authentication:** JWT (access + refresh tokens)
+- **Validation:** Zod
+- **Email:** Nodemailer (provider-agnostic)
+- **Cache/Queue:** Redis (token blacklist)
+- **Documentation:** Swagger UI + Redoc
+- **Logging:** Winston
+- **Security:** Helmet, CORS, bcrypt, rate limiting
+
+**Key Design Patterns:**
+- Layered architecture (Routes → Controllers → Services → Repositories)
+- Repository pattern for data access
+- Singleton pattern for database clients
+- Provider-agnostic email service
+- Middleware-based request pipeline
+
+---
+
+## 📁 Project Structure
 
 ```
 karian_bank/
 ├── src/
-│   ├── api/                    # API layer (routes, controllers, middleware)
-│   ├── services/               # Business logic
-│   ├── repositories/           # Data access layer
-│   ├── utils/                  # Utilities (logger, errors, etc.)
-│   ├── config/                 # Configuration
-│   ├── lib/                    # Third-party integrations
-│   └── jobs/                   # Scheduled jobs
+│   ├── api/
+│   │   ├── controllers/      # HTTP request handlers
+│   │   ├── middleware/       # Auth, validation, error handling
+│   │   └── routes/           # Route definitions
+│   ├── services/             # Business logic
+│   ├── repositories/         # Data access layer
+│   ├── lib/                  # Prisma clients, utilities
+│   ├── utils/                # Logger, errors, encryption, JWT
+│   ├── config/               # Configuration, Swagger
+│   ├── templates/            # Email templates
+│   └── types/                # TypeScript type definitions
 ├── prisma/
-│   ├── master.prisma           # Master database schema
-│   ├── tenant.prisma           # Tenant database schema
-│   └── migrations/             # Database migrations
-├── tests/
-│   ├── unit/                   # Unit tests
-│   ├── integration/            # Integration tests
-│   └── e2e/                    # End-to-end tests
-├── docs/                       # Documentation
-├── scripts/                    # Utility scripts
-└── server.js                   # Application entry point
+│   ├── master.prisma         # Tenant metadata schema
+│   └── tenant.prisma         # Banking domain schema
+├── docs/                     # Documentation
+├── tests/                    # Test suites
+└── scripts/                  # Utility scripts
 ```
 
-See [Folder Structure](docs/architecture/folder-structure.md) for detailed explanation.
+---
+
+## 🔐 Security Features
+
+- **JWT Authentication:** Access tokens (15min) + Refresh tokens (7 days)
+- **Token Blacklisting:** Redis-based for logout functionality
+- **Password Hashing:** bcrypt with 12 rounds
+- **Rate Limiting:** 5 login attempts/15min, 3 password resets/hour
+- **Account Lockout:** After 5 failed login attempts (30min lock)
+- **Email Verification:** Required for account activation (24hr token)
+- **Password Reset:** Secure flow with 1hr token expiry
+- **CORS Protection:** Configurable origins
+- **Security Headers:** Helmet.js middleware
+- **Input Validation:** Zod schema validation on all endpoints
 
 ---
 
-## Core Features
+## 📚 Documentation
 
-### Phase 1: Foundation (Completed: ⬜)
-- [ ] Multi-tenant architecture
-- [ ] Authentication & Authorization (JWT + RBAC)
-- [ ] User management
-- [ ] Core utilities and middleware
+**Project Documentation:**
+- [Architecture](docs/ARCHITECTURE.md) - System design and decisions
+- [Progress Tracking](docs/PROGRESS.md) - Current status and roadmap
+- [Development Guide](docs/DEVELOPMENT.md) - How to develop features
+- [API Documentation](http://localhost:3000/api-docs) - Swagger UI (when server running)
 
-### Phase 2: Core Banking (Completed: ⬜)
-- [ ] Customer management (KYC)
-- [ ] Account management (Savings, Checking, Fixed Deposit)
-- [ ] Transaction processing (Deposit, Withdrawal, Transfer)
-- [ ] Double-entry ledger system
-
-### Phase 3: Advanced Features (Completed: ⬜)
-- [ ] Idempotency for transactions
-- [ ] Rate limiting
-- [ ] Pagination (cursor and offset-based)
-- [ ] PDF and Excel reports
-- [ ] Batch processing
-- [ ] Payment gateway integration (simulated)
-
-### Phase 4: Security & Compliance (Completed: ⬜)
-- [ ] Comprehensive audit logging
-- [ ] Data encryption
-- [ ] Compliance features (GDPR)
-- [ ] Security monitoring
+**API Endpoints:**
+Full interactive documentation available at:
+- **Swagger UI:** http://localhost:3000/api-docs
+- **Redoc:** http://localhost:3000/api-docs-redoc
 
 ---
 
-## Testing
+## 🛠️ Development
+
+**Prerequisites:**
+- Node.js 20+
+- PostgreSQL 14+
+- Redis 7+ (for token blacklist)
+- Gmail account (or other SMTP for emails)
+
+**Environment Variables:**
+See `.env.example` for all requirements. Key variables:
+- `MASTER_DATABASE_URL` - Master Prisma client database
+- `TENANT_DATABASE_URL` - Tenant template database
+- `JWT_SECRET` / `JWT_REFRESH_SECRET` - JWT signing keys
+- `EMAIL_*` - Email service configuration
+- `REDIS_*` - Redis configuration
+
+**Development Scripts:**
+```bash
+npm run dev              # Start dev server with auto-reload
+npm run build            # Build for production
+npm run start            # Start production server
+npm run prisma:generate  # Generate Prisma clients
+npm run test             # Run tests
+npm run lint             # Lint code
+npm run format           # Format code
+```
+
+**Database Scripts:**
+```bash
+npm run prisma:migrate:master  # Run master DB migrations
+npm run prisma:migrate:tenant  # Run tenant DB migrations
+npm run prisma:studio          # Open Prisma Studio
+```
+
+---
+
+## 🧪 Testing
+
+**Test Coverage Target:** 80%
 
 ```bash
-# Run all tests
-npm test
-
-# Run unit tests only
-npm run test:unit
-
-# Run integration tests
-npm run test:integration
-
-# Run with coverage
-npm run test:coverage
-
-# Run specific test file
-npm test -- tests/unit/services/transaction.service.test.js
+npm run test              # Run all tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # Generate coverage report
 ```
 
----
-
-## API Documentation
-
-Once the server is running, API documentation is available at:
-
-```
-http://localhost:3000/api-docs
-```
+**Testing Strategy:**
+- Unit tests for services and repositories
+- Integration tests for API endpoints
+- E2E tests for critical user flows
 
 ---
 
-## Environment Variables
+## 🚀 Deployment
 
-See `.env.example` for all required environment variables:
-
-```bash
-# Application
-NODE_ENV=development
-PORT=3000
-
-# Master Database
-MASTER_DATABASE_URL=postgresql://user:password@localhost:5432/master_db
-
-# Tenant Database (template)
-TENANT_DATABASE_URL=postgresql://user:password@localhost:5432/tenant_db
-
-# JWT
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=15m
-
-# Redis
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# ... and more
-```
+**Production Checklist:**
+- [ ] Set `NODE_ENV=production` in environment
+- [ ] Configure production database URLs
+- [ ] Set secure JWT secrets (256+ bits)
+- [ ] Configure SMTP for production emails
+- [ ] Set up Redis for production
+- [ ] Configure CORS for production domains
+- [ ] Set up database backups
+- [ ] Configure log rotation
+- [ ] Set up monitoring (optional)
 
 ---
 
-## Development Scripts
+## 📊 Project Roadmap
 
-```bash
-# Start development server with hot reload
-npm run dev
+**Completed:**
+- ✅ Phase 1: Foundation & Setup
+- ✅ Phase 2: Authentication & Authorization
 
-# Run linting
-npm run lint
+**Planned:**
+- 🔲 Phase 3: User Management (Admin CRUD)
+- 🔲 Phase 4: Customer Management & KYC
+- 🔲 Phase 5: Account Management
+- 🔲 Phase 6: Transaction Processing
 
-# Format code
-npm run format
-
-# Run database migrations
-npm run migrate
-
-# Seed database
-npm run seed
-
-# Generate Prisma client
-npm run prisma:generate
-```
+See [docs/PROGRESS.md](docs/PROGRESS.md) for detailed progress tracking.
 
 ---
 
-## Learning Outcomes
+## 🤝 Contributing
 
-By completing this project, you will learn:
+This is an educational project for learning enterprise software engineering practices.
 
-1. **Architecture Patterns**
-   - Layered architecture
-   - Repository pattern
-   - Service layer pattern
-   - Dependency injection
-
-2. **Advanced Concepts**
-   - Multi-tenancy (database-per-tenant)
-   - Idempotency
-   - Double-entry bookkeeping
-   - Optimistic locking
-   - Rate limiting
-   - Pagination strategies
-
-3. **Security**
-   - JWT authentication
-   - RBAC authorization
-   - Password hashing
-   - Data encryption
-   - Audit logging
-
-4. **Performance**
-   - Database indexing
-   - Query optimization
-   - Caching strategies
-   - Connection pooling
-
-5. **Best Practices**
-   - Separation of concerns
-   - DTOs and validation
-   - Error handling
-   - Testing strategies
-   - API design
+**Development Workflow:**
+1. Check [docs/PROGRESS.md](docs/PROGRESS.md) for current status
+2. Review [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for design decisions
+3. Follow patterns in existing code
+4. Write tests for new features
+5. Update documentation
 
 ---
 
-## Roadmap
+## 📄 License
 
-See [Implementation Roadmap](docs/implementation-roadmap.md) for the complete 14-week development plan.
-
-**Current Phase**: Phase 1 - Foundation & Setup
+MIT License - See LICENSE file for details
 
 ---
 
-## Contributing
+## 💡 Learning Objectives
 
-This is a learning project. Feel free to:
-- Experiment with different approaches
-- Add new features
-- Improve existing code
-- Document your learnings
-
----
-
-## License
-
-This project is for educational purposes.
-
----
-
-## Acknowledgments
-
-Built to learn enterprise-level software engineering practices in:
-- Multi-tenancy
-- Idempotency
-- Security
-- Performance optimization
-- Maintainable architecture
+This project demonstrates:
+- Multi-tenancy architecture (database-per-tenant)
+- Enterprise authentication (JWT, email verification, password reset)
+- Security best practices (rate limiting, account lockout, token blacklisting)
+- Clean architecture (layered design, repository pattern)
+- TypeScript best practices (strict typing, interfaces)
+- API documentation (Swagger/OpenAPI)
+- Database design (Prisma ORM, migrations)
+- Email integration (provider-agnostic design)
+- Error handling (custom error classes, global handler)
+- Logging and monitoring (Winston)
 
 ---
 
-## Support
+**For detailed development information, see [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**
 
-For questions or clarifications, refer to the comprehensive documentation in the `docs/` directory.
-
-**Happy Learning!**
+**For current progress and next steps, see [docs/PROGRESS.md](docs/PROGRESS.md)**
