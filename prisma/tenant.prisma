@@ -1,0 +1,274 @@
+// This is your Prisma schema file for TENANT databases
+// Each tenant has their own isolated database with this schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/tenant-client"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================
+// Authentication & Authorization
+// ============================================
+
+model User {
+  id                String      @id @default(uuid())
+  email             String      @unique
+  password          String
+  firstName         String
+  lastName          String
+  phone             String?
+  role              UserRole    @default(CUSTOMER)
+  status            UserStatus  @default(ACTIVE)
+  lastLoginAt       DateTime?
+  failedLoginAttempts Int       @default(0)
+  lockedUntil       DateTime?
+  
+  // Email Verification
+  emailVerified     Boolean     @default(false)
+  emailVerificationToken String?
+  emailVerificationExpires DateTime?
+  
+  // Password Reset
+  passwordResetToken String?
+  passwordResetExpires DateTime?
+  
+  // Relationships
+  customers         Customer[]
+  
+  // Metadata
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  createdBy         String?
+  
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  TENANT_ADMIN
+  MANAGER
+  TELLER
+  CUSTOMER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  LOCKED
+  DELETED
+}
+
+// ============================================
+// Customer Management (KYC)
+// ============================================
+
+model Customer {
+  id                String          @id @default(uuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id])
+  customerType      CustomerType    @default(INDIVIDUAL)
+  
+  // Personal Information
+  dateOfBirth       DateTime?
+  nationality       String?
+  idType            String?
+  idNumber          String?
+  address           String?
+  city              String?
+  country           String?
+  postalCode        String?
+  
+  // KYC & Compliance
+  kycStatus         KYCStatus       @default(PENDING)
+  kycVerifiedAt     DateTime?
+  riskLevel         RiskLevel       @default(LOW)
+  
+  // Relationships
+  accounts          Account[]
+  
+  // Metadata
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdBy         String?
+  
+  @@map("customers")
+}
+
+enum CustomerType {
+  INDIVIDUAL
+  CORPORATE
+}
+
+enum KYCStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// ============================================
+// Account Management
+// ============================================
+
+model Account {
+  id                String          @id @default(uuid())
+  accountNumber     String          @unique
+  customerId        String
+  customer          Customer        @relation(fields: [customerId], references: [id])
+  accountType       AccountType
+  currency          String          @default("USD")
+  balance           Decimal         @default(0) @db.Decimal(19, 4)
+  availableBalance  Decimal         @default(0) @db.Decimal(19, 4)
+  status            AccountStatus   @default(ACTIVE)
+  
+  // Account Configuration
+  minimumBalance    Decimal         @default(0) @db.Decimal(19, 4)
+  interestRate      Decimal?        @db.Decimal(5, 4)
+  overdraftLimit    Decimal         @default(0) @db.Decimal(19, 4)
+  
+  // Relationships
+  transactionsFrom  Transaction[]   @relation("FromAccount")
+  transactionsTo    Transaction[]   @relation("ToAccount")
+  ledgerEntries     LedgerEntry[]
+  
+  // Optimistic Locking
+  version           Int             @default(0)
+  
+  // Metadata
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  createdBy         String?
+  
+  @@map("accounts")
+}
+
+enum AccountType {
+  SAVINGS
+  CHECKING
+  FIXED_DEPOSIT
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  FROZEN
+  CLOSED
+}
+
+// ============================================
+// Transaction Processing
+// ============================================
+
+model Transaction {
+  id                String              @id @default(uuid())
+  reference         String              @unique
+  idempotencyKey    String?             @unique
+  transactionType   TransactionType
+  amount            Decimal             @db.Decimal(19, 4)
+  currency          String              @default("USD")
+  status            TransactionStatus   @default(PENDING)
+  
+  // Account References
+  fromAccountId     String?
+  fromAccount       Account?            @relation("FromAccount", fields: [fromAccountId], references: [id])
+  toAccountId       String?
+  toAccount         Account?            @relation("ToAccount", fields: [toAccountId], references: [id])
+  
+  // Transaction Details
+  description       String?
+  metadata          Json?
+  
+  // Reversal
+  reversedAt        DateTime?
+  reversalReason    String?
+  originalTransactionId String?
+  
+  // Audit
+  initiatedBy       String
+  approvedBy        String?
+  ipAddress         String?
+  userAgent         String?
+  
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@map("transactions")
+  @@index([idempotencyKey])
+  @@index([reference])
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  TRANSFER
+  FEE
+  INTEREST
+  REVERSAL
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REVERSED
+}
+
+// ============================================
+// Double-Entry Ledger
+// ============================================
+
+model LedgerEntry {
+  id                String          @id @default(uuid())
+  accountId         String
+  account           Account         @relation(fields: [accountId], references: [id])
+  transactionId     String
+  entryType         EntryType
+  amount            Decimal         @db.Decimal(19, 4)
+  balanceAfter      Decimal         @db.Decimal(19, 4)
+  description       String?
+  
+  // Metadata
+  createdAt         DateTime        @default(now())
+  
+  @@map("ledger_entries")
+  @@index([accountId])
+  @@index([transactionId])
+}
+
+enum EntryType {
+  DEBIT
+  CREDIT
+}
+
+// ============================================
+// Idempotency
+// ============================================
+
+model IdempotencyRecord {
+  id                String          @id @default(uuid())
+  idempotencyKey    String          @unique
+  endpoint          String
+  requestHash       String
+  responseStatus    Int
+  responseBody      Json?
+  
+  // Metadata
+  createdAt         DateTime        @default(now())
+  expiresAt         DateTime
+  
+  @@map("idempotency_records")
+  @@index([expiresAt])
+}

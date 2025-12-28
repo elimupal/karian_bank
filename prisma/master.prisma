@@ -1,0 +1,35 @@
+// This is your Prisma schema file for the MASTER database
+// It manages tenant metadata and system-wide configuration
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/master-client"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  databaseUrl   String    // Connection string for tenant's database
+  status        TenantStatus @default(ACTIVE)
+  settings      Json?     // Tenant-specific settings (currency, timezone, etc.)
+  
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  createdBy     String?
+  
+  @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}
