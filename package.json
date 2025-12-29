@@ -20,6 +20,7 @@
     "prisma:generate": "cross-env-shell \"prisma generate --schema=./prisma/master.prisma --config=./prisma.config.master.ts && prisma generate --schema=./prisma/tenant.prisma --config=./prisma.config.tenant.ts\"",
     "prisma:migrate:master": "cross-env-shell prisma migrate dev --schema=./prisma/master.prisma --config=./prisma.config.master.ts",
     "prisma:migrate:tenant": "cross-env-shell prisma migrate dev --schema=./prisma/tenant.prisma --config=./prisma.config.tenant.ts",
+    "bootstrap": "ts-node -r tsconfig-paths/register scripts/bootstrap.ts",
     "seed": "ts-node src/scripts/seed.ts"
   },
   "repository": {
