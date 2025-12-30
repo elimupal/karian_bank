@@ -130,7 +130,8 @@ PostgreSQL Database
 - `src/lib/tenantClient.ts` - Tenant DB client manager (pooling)
 
 **Authentication:**
-- `src/services/auth.service.ts` - Auth business logic
+- `src/application/use-cases/auth/` - Auth use cases (login, register, verify-email, forgot/reset/change password)
+- `src/application/dtos/auth/` - Auth DTOs used across controllers and use cases
 - `src/repositories/user.repository.ts` - User data access
 - `src/api/controllers/auth.controller.ts` - Auth HTTP handlers
 - `src/api/routes/auth.routes.ts` - Auth route definitions

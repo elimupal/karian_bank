@@ -72,8 +72,12 @@ src/
 │       ├── account.validator.ts
 │       └── transaction.validator.ts
 │
+├── application/                 # Application layer
+│   ├── use-cases/               # Use case implementations (Auth, Users, etc.)
+│   ├── dtos/                    # Data Transfer Objects used by controllers and use cases
+│
 ├── services/                     # Business logic layer
-│   ├── auth.service.ts           # Authentication logic
+│   ├── user.service.ts           # User management logic
 │   ├── user.service.ts           # User management logic
 │   ├── customer.service.ts       # Customer management logic
 │   ├── account.service.ts        # Account management logic

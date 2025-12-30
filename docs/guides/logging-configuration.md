@@ -423,7 +423,7 @@ export class TransactionController {
 ### 4.3 Security Logging
 
 ```typescript
-// src/services/auth.service.ts
+// src/application/use-cases/auth/login-user.use-case.ts
 import { injectable, inject } from 'tsyringe';
 import { LoggerService } from '@utils/logger.service';
 

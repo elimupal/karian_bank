@@ -1,9 +1,27 @@
 import { Request, Response, NextFunction } from 'express';
-import authService from '@/services/auth.service';
 import TokenBlacklistService from '@/lib/tokenBlacklist';
 import { successResponse } from '@/utils/response';
 import { verifyRefreshToken } from '@/utils/jwt';
 import config from '@/config';
+import { masterDb } from '@/lib/masterDb';
+import { tenantClientManager } from '@/lib/tenantClient';
+import { RegisterUserUseCase } from '@/application/use-cases/auth/register-user.use-case';
+import { LoginUserUseCase } from '@/application/use-cases/auth/login-user.use-case';
+import { RegisterUserDto } from '@/application/dtos/auth/register-user.dto';
+import { LoginDto } from '@/application/dtos/auth/login.dto';
+import { VerifyEmailDto } from '@/application/dtos/auth/verify-email.dto';
+import { ForgotPasswordDto } from '@/application/dtos/auth/forgot-password.dto';
+import { ResetPasswordDto } from '@/application/dtos/auth/reset-password.dto';
+import { ChangePasswordDto } from '@/application/dtos/auth/change-password.dto';
+import { VerifyEmailUseCase } from '@/application/use-cases/auth/verify-email.use-case';
+import { ForgotPasswordUseCase } from '@/application/use-cases/auth/forgot-password.use-case';
+import { ResetPasswordUseCase } from '@/application/use-cases/auth/reset-password.use-case';
+import { ChangePasswordUseCase } from '@/application/use-cases/auth/change-password.use-case';
+import PrismaUserRepository from '@/repositories/user.repository.adapter';
+import BcryptPasswordService from '@/services/adapters/password.service.adapter';
+import JwtTokenService from '@/services/adapters/token.service.adapter';
+import AppEmailServiceAdapter from '@/services/adapters/email.service.adapter';
+import { UnauthorizedError } from '@/utils/errors';
 
 /**
  * Authentication Controller
@@ -17,24 +35,42 @@ class AuthController {
     async register(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const { email, password, firstName, lastName, phone, role, tenantSlug } = req.body;
-            const createdBy = req.user?.userId || 'system';
 
-            const user = await authService.registerUser({
+            // Resolve tenant
+            const tenant = await masterDb.tenant.findUnique({ where: { slug: tenantSlug } });
+            if (!tenant || tenant.status !== 'ACTIVE') {
+                throw new UnauthorizedError('Invalid tenant');
+            }
+
+            // Get tenant DB client
+            const tenantDb = tenantClientManager.getClient(tenant.id, tenant.databaseUrl);
+
+            // Compose use-case with adapters
+            const userRepository = new PrismaUserRepository(tenantDb);
+            const passwordService = new BcryptPasswordService();
+            const emailService = new AppEmailServiceAdapter();
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            const registerUser = new RegisterUserUseCase(
+                userRepository,
+                passwordService,
+                emailService,
+                frontendUrl
+            );
+
+            const dto = new RegisterUserDto(
                 email,
                 password,
                 firstName,
                 lastName,
-                phone,
+                phone || null,
                 role,
-                tenantSlug,
-                createdBy,
-            });
+                tenantSlug
+            );
 
-            // Remove sensitive data
-            const { password: _, ...userWithoutPassword } = user;
+            const result = await registerUser.execute(dto);
 
             res.status(201).json(
-                successResponse(userWithoutPassword, 'User registered successfully. Verification email sent.')
+                successResponse(result, 'User registered successfully. Verification email sent.')
             );
         } catch (error) {
             next(error);
@@ -49,7 +85,27 @@ class AuthController {
         try {
             const { email, password, tenantSlug } = req.body;
 
-            const result = await authService.login(email, password, tenantSlug);
+            // Resolve tenant
+            const tenant = await masterDb.tenant.findUnique({ where: { slug: tenantSlug } });
+            if (!tenant || tenant.status !== 'ACTIVE') {
+                throw new UnauthorizedError('Invalid credentials');
+            }
+
+            // Get tenant DB client
+            const tenantDb = tenantClientManager.getClient(tenant.id, tenant.databaseUrl);
+
+            // Compose use-case with adapters
+            const userRepository = new PrismaUserRepository(tenantDb);
+            const passwordService = new BcryptPasswordService();
+            const tokenService = new JwtTokenService();
+            const loginUser = new LoginUserUseCase(
+                userRepository,
+                passwordService,
+                tokenService
+            );
+
+            const dto = new LoginDto(email, password, tenantSlug);
+            const result = await loginUser.execute(dto, tenant.id);
 
             res.json(successResponse(result, 'Login successful'));
         } catch (error) {
@@ -124,7 +180,17 @@ class AuthController {
         try {
             const { token, tenantId } = req.body;
 
-            await authService.verifyEmail(token, tenantId);
+            const tenant = await masterDb.tenant.findUnique({ where: { id: tenantId } });
+            if (!tenant || tenant.status !== 'ACTIVE') {
+                throw new UnauthorizedError('Invalid tenant');
+            }
+
+            const tenantDb = tenantClientManager.getClient(tenant.id, tenant.databaseUrl);
+            const userRepository = new PrismaUserRepository(tenantDb);
+            const verifyEmailUseCase = new VerifyEmailUseCase(userRepository);
+
+            const dto = new VerifyEmailDto(token, tenantId);
+            await verifyEmailUseCase.execute(dto);
 
             res.json(successResponse(null, 'Email verified successfully'));
         } catch (error) {
@@ -140,7 +206,12 @@ class AuthController {
         try {
             const { email, tenantSlug } = req.body;
 
-            await authService.requestPasswordReset(email, tenantSlug);
+            const emailService = new AppEmailServiceAdapter();
+            const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+            const forgotPasswordUseCase = new ForgotPasswordUseCase(emailService, frontendUrl);
+
+            const dto = new ForgotPasswordDto(email, tenantSlug);
+            await forgotPasswordUseCase.execute(dto);
 
             // Always return success (don't reveal if email exists)
             res.json(
@@ -162,7 +233,11 @@ class AuthController {
         try {
             const { token, newPassword, tenantId } = req.body;
 
-            await authService.resetPassword(token, newPassword, tenantId);
+            const passwordService = new BcryptPasswordService();
+            const resetPasswordUseCase = new ResetPasswordUseCase(passwordService);
+
+            const dto = new ResetPasswordDto(token, newPassword, tenantId);
+            await resetPasswordUseCase.execute(dto);
 
             res.json(successResponse(null, 'Password reset successful'));
         } catch (error) {
@@ -180,7 +255,15 @@ class AuthController {
             const userId = req.user!.userId;
             const tenantDb = req.tenantDb!;
 
-            await authService.changePassword(userId, oldPassword, newPassword, tenantDb);
+            const userRepository = new PrismaUserRepository(tenantDb);
+            const passwordService = new BcryptPasswordService();
+            const changePasswordUseCase = new ChangePasswordUseCase(
+                userRepository,
+                passwordService
+            );
+
+            const dto = new ChangePasswordDto(userId, oldPassword, newPassword);
+            await changePasswordUseCase.execute(dto);
 
             res.json(successResponse(null, 'Password changed successfully'));
         } catch (error) {

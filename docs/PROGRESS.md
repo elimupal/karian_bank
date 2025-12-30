@@ -74,7 +74,7 @@
 
 **Key Files:**
 - `src/repositories/user.repository.ts` - User data access
-- `src/services/auth.service.ts` - Authentication business logic
+- `src/application/use-cases/auth/` - Authentication use cases replacing previous service layer
 - `src/services/email.service.ts` - Email sending (provider-agnostic)
 - `src/templates/email.templates.ts` - Email HTML templates
 - `src/lib/tokenBlacklist.ts` - Redis token blacklist
